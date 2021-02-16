@@ -1,0 +1,102 @@
+repositories:
+
+  #
+  # For APT-based systems
+  #
+
+  # Override /etc/apt/sources.list.
+  # Managed as file with contents arg.
+  manage_sources_list: no
+  sources_list:
+    - deb http://ftp.debian.org/debian stretch main
+    - deb http://ftp.debian.org/debian stretch-updates main
+    - deb http://security.debian.org stretch/updates main
+
+  # Other repositories in /etc/apt/sources.list.d directory.
+  # Note, that Salt will not create this file if repo is
+  # already configured in sources.list.
+  # Only one repo per file.
+  repos:
+    ansible: # Filename inside sources.list.d directory w/o .list ext
+      # ppa supported only for Ubuntu, doesn't work on Debian
+      ppa: ansible/ansible
+    fish:
+      # any args from pkgrepo.managed should work, except clean_file and refresh
+      name: deb http://download.opensuse.org/repositories/shells:/fish:/release:/3/Debian_9.0/ /
+      key_url: https://download.opensuse.org/repositories/shells:fish:release:3/Debian_9.0/Release.key
+    ansible.list:
+      name: deb http://ppa.launchpad.net/ansible/ansible/ubuntu bionic main
+      keyid: 6125E2A8C77F2818FB7BD15B93C4A3FD7BB9C367
+      keyserver: keyserver.ubuntu.com
+    some_repo:
+      # Remove repo
+      absent: yes
+      # Can also delete keys, but be sure, that this key is not needed for other repos
+      keyid: 8s7f9sff
+    logstash:
+      # Remove ppa repo and its key
+      ppa: wolfnet/logstash
+      keyid_ppa: yes
+      absent: yes
+
+  #
+  # For RPM-based systems
+  #
+
+  # Repositories to add. Key name is a repo ID as seen in the entry in square
+  # brackets (e.g. [foo]) for a given repo. Secondly, it will be the name of
+  # the file as stored in /etc/yum.repos.d (e.g. /etc/yum.repos.d/foo.conf).
+  # Note, that if a repository is already exists, it will not be moved to other
+  # file.
+
+  #repos:       # commented to silence linting because of duplicate key
+    centosplus:
+      # humanname is 'name' in repo file
+      humanname: CentOS-$releasever - Plus
+      mirrorlist: http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=centosplus&infra=$infra
+      # baseurl: http://mirror.centos.org/centos/$releasever/centosplus/$basearch/
+      gpgcheck: 1
+      # enabled: 0
+      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+    saltstack:
+      humanname: SaltStack repo for RHEL/CentOS $releasever
+      baseurl: https://repo.saltstack.com/py3/redhat/7/$basearch/latest
+      gpgcheck: 1
+      # key_url is supported only for this state and only on opensuse
+      # salt packages (or packages provided for SUSE Manager or Uyuni)
+      # See: https://github.com/openSUSE/salt/pull/289 (opensuse fork)
+      # https://github.com/saltstack/salt/pull/58784 (upstream PR)
+      # Same goes for the key_text parameter
+      key_url: https://repo.saltstack.com/py3/redhat/7/$basearch/latest/SALTSTACK-GPG-KEY.pub
+      # OR
+      key_text: |
+        SOME GPG KEY HERE
+      # key_id is used to check if key is already imported.
+      # If not provided, a key will be imported every time.
+      # Last 8 characters is enough.
+      key_id: 754A1A7AE731F165D5E6D4BD0E08A149DE57BFBE
+    obsolete_repo:
+      # will remove repo, but will not remove its gpg keys
+      # if you want to delete keys, use del_repo_keys list
+      absent: yes
+
+  # Remove gpg keys. Provide key ids, at least 8 last characters.
+  # Note that list of keys to delete is being determined during rendering
+  # stage, so it will not delete keys, created in earilier states.
+  del_repo_keys:
+    - de57bfbe
+
+  # You can install xxx-release packages.
+  # Note, these packages are installed before repos (so that you can disable some
+  # repos later). It can create chicken or the egg problem, when release
+  # package can't be installed. But usually some base repo is always configured.
+  releases:
+    - oraclelinux-release-el7
+    # You can add dependencies: value is a name of the repo
+    - mysql-release-el7:
+        require: ol7_latest
+        require_in:
+          - ol7_MySQL80
+          - ol7_MySQL57
+  releases_absent:
+    - oracle-epel-release-el7
